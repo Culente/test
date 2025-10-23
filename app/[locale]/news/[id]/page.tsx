@@ -1,9 +1,6 @@
-'use client'
-
 import { newsApi } from '@/lib/api'
 import Link from 'next/link'
 import { notFound } from 'next/navigation'
-import { useEffect, useState } from 'react'
 import { getTranslations, Locale } from '@/lib/i18n'
 
 interface NewsDetailPageProps {
@@ -13,43 +10,52 @@ interface NewsDetailPageProps {
   }
 }
 
-export default function NewsDetailPage({ params }: NewsDetailPageProps) {
-  const [newsData, setNewsData] = useState<any>(null)
-  const [error, setError] = useState<string | null>(null)
-  const [loading, setLoading] = useState(true)
+// 为静态导出生成所有可能的路径
+export async function generateStaticParams() {
+  // 获取所有语言的新闻数据来生成静态路径
+  const locales = ['zh-CN', 'en']
+  const allParams = []
   
-  const t = getTranslations(params.locale)
-
-  useEffect(() => {
-    const fetchNews = async () => {
-      setLoading(true)
-      try {
-        console.log('Fetching news detail with locale:', params.locale)
-        const response = await newsApi.getNewsById(params.id, params.locale)
-        console.log('News detail API response:', response)
-        // 从数组中获取第一个匹配的新闻
-        const newsItem = response.data && response.data.length > 0 ? response.data[0] : null
-        setNewsData(newsItem)
-        setError(null)
-      } catch (err) {
-        setError('Failed to fetch news')
-        console.error('Error fetching news:', err)
-      } finally {
-        setLoading(false)
+  for (const locale of locales) {
+    try {
+      const response = await newsApi.getNewsList({
+        page: 1,
+        pageSize: 100, // 获取更多新闻
+        sort: 'publishDate:desc',
+        locale: locale
+      })
+      
+      if (response.data) {
+        for (const news of response.data) {
+          allParams.push({
+            locale: locale,
+            id: news.documentId
+          })
+        }
       }
+    } catch (error) {
+      console.error(`Error fetching news for locale ${locale}:`, error)
     }
+  }
+  
+  return allParams
+}
 
-    fetchNews()
-  }, [params.id, params.locale])
+export default async function NewsDetailPage({ params }: NewsDetailPageProps) {
+  const t = getTranslations(params.locale)
+  
+  let newsData: any = null
+  let error: string | null = null
 
-  if (loading) {
-    return (
-      <div className="container-custom py-8">
-        <div className="flex justify-center items-center h-64">
-          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary-600"></div>
-        </div>
-      </div>
-    )
+  try {
+    console.log('Fetching news detail with locale:', params.locale)
+    const response = await newsApi.getNewsById(params.id, params.locale)
+    console.log('News detail API response:', response)
+    // 从数组中获取第一个匹配的新闻
+    newsData = response.data && response.data.length > 0 ? response.data[0] : null
+  } catch (err) {
+    error = 'Failed to fetch news'
+    console.error('Error fetching news:', err)
   }
 
   if (error || !newsData) {

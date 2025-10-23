@@ -1,9 +1,6 @@
-'use client'
-
 import { newsApi } from '@/lib/api'
 import NewsCard from '@/components/NewsCard'
 import Link from 'next/link'
-import { useEffect, useState } from 'react'
 import { getTranslations, Locale } from '@/lib/i18n'
 
 interface NewsItem {
@@ -27,46 +24,33 @@ interface LocalePageProps {
   }
 }
 
-export default function LocalePage({ params }: LocalePageProps) {
-  const [newsData, setNewsData] = useState<NewsItem[] | null>(null)
-  const [error, setError] = useState<string | null>(null)
-  const [loading, setLoading] = useState(true)
-  
+// 为静态导出生成所有可能的语言路径
+export async function generateStaticParams() {
+  return [
+    { locale: 'zh-CN' },
+    { locale: 'en' }
+  ]
+}
+
+export default async function LocalePage({ params }: LocalePageProps) {
   const t = getTranslations(params.locale)
+  
+  let newsData: NewsItem[] | null = null
+  let error: string | null = null
 
-  useEffect(() => {
-    const fetchNews = async () => {
-      setLoading(true)
-      try {
-        console.log('Fetching news with locale:', params.locale)
-        const response = await newsApi.getNewsList({
-          page: 1,
-          pageSize: 10,
-          sort: 'publishDate:desc',
-          locale: params.locale
-        })
-        console.log('API response:', response)
-        setNewsData(response.data)
-        setError(null)
-      } catch (err) {
-        setError(t.news.loadError)
-        console.error('Error fetching news:', err)
-      } finally {
-        setLoading(false)
-      }
-    }
-
-    fetchNews()
-  }, [params.locale, t.news.loadError])
-
-  if (loading) {
-    return (
-      <div className="container-custom py-8">
-        <div className="flex justify-center items-center h-64">
-          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary-600"></div>
-        </div>
-      </div>
-    )
+  try {
+    console.log('Fetching news with locale:', params.locale)
+    const response = await newsApi.getNewsList({
+      page: 1,
+      pageSize: 10,
+      sort: 'publishDate:desc',
+      locale: params.locale
+    })
+    console.log('API response:', response)
+    newsData = response.data
+  } catch (err) {
+    error = t.news.loadError
+    console.error('Error fetching news:', err)
   }
 
   return (

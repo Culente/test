@@ -1,8 +1,5 @@
-'use client'
-
 import { testSingleTypeApi } from '@/lib/api'
 import Link from 'next/link'
-import { useEffect, useState } from 'react'
 import { getTranslations, Locale } from '@/lib/i18n'
 
 interface LocaleSamplePageProps {
@@ -11,39 +8,26 @@ interface LocaleSamplePageProps {
   }
 }
 
-export default function LocaleSamplePage({ params }: LocaleSamplePageProps) {
-  const [sampleData, setSampleData] = useState<any>(null)
-  const [error, setError] = useState<string | null>(null)
-  const [loading, setLoading] = useState(true)
-  
+// 为静态导出生成所有可能的语言路径
+export async function generateStaticParams() {
+  return [
+    { locale: 'zh-CN' },
+    { locale: 'en' }
+  ]
+}
+
+export default async function LocaleSamplePage({ params }: LocaleSamplePageProps) {
   const t = getTranslations(params.locale)
+  
+  let sampleData: any = null
+  let error: string | null = null
 
-  useEffect(() => {
-    const fetchSampleData = async () => {
-      setLoading(true)
-      try {
-        const response = await testSingleTypeApi.getTestSingleType(params.locale)
-        setSampleData(response.data)
-        setError(null)
-      } catch (err) {
-        setError(t.sample.noContent)
-        console.error('Error fetching sample data:', err)
-      } finally {
-        setLoading(false)
-      }
-    }
-
-    fetchSampleData()
-  }, [params.locale, t.sample.noContent])
-
-  if (loading) {
-    return (
-      <div className="container-custom py-8">
-        <div className="flex justify-center items-center h-64">
-          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary-600"></div>
-        </div>
-      </div>
-    )
+  try {
+    const response = await testSingleTypeApi.getTestSingleType(params.locale)
+    sampleData = response.data
+  } catch (err) {
+    error = t.sample.noContent
+    console.error('Error fetching sample data:', err)
   }
 
   return (

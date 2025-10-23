@@ -32,6 +32,8 @@ $RECYCLE.BIN/
 *.msp
 .next/
 node_modules/
+dist/
+out/
 package-lock.json
 yarn.lock
 
